@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini FPS</title>
+<style>
+body{margin:0;overflow:hidden;background:#111;font-family:Arial}
+canvas{display:block}
+#ui{
+position:fixed;top:10px;left:10px;color:white;
+font-size:20px;background:rgba(0,0,0,.4);padding:8px;border-radius:8px
+}
+#crosshair{
+position:fixed;left:50%;top:50%;
+transform:translate(-50%,-50%);
+color:white;font-size:32px;pointer-events:none;
+}
+#start{
+position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+background:#000;color:#fff;font-size:24px;cursor:pointer;
+}
+</style>
+</head>
+<body>
+<div id="ui">Pontos: <span id="score">0</span></div>
+<div id="crosshair">+</div>
+<div id="start">Clique para começar</div>
+<canvas id="game"></canvas>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+function resize(){
+canvas.width=innerWidth;
+canvas.height=innerHeight;
+}
+resize();
+addEventListener("resize",resize);
+
+let score=0;
+let yaw=0;
+
+const targets=[];
+
+function spawnTarget(){
+targets.push({
+x:(Math.random()-0.5)*1000,
+z:300+Math.random()*1200,
+size:40+Math.random()*40
+});
+}
+
+for(let i=0;i<15;i++) spawnTarget();
+
+document.getElementById("start").onclick=()=>{
+document.body.requestPointerLock();
+document.getElementById("start").style.display="none";
+};
+
+document.addEventListener("mousemove",(e)=>{
+if(document.pointerLockElement===document.body){
+yaw+=e.movementX*0.003;
+}
+});
+
+document.addEventListener("click",()=>{
+if(document.pointerLockElement!==document.body) return;
+
+for(let i=targets.length-1;i>=0;i--){
+const t=targets[i];
+
+const dx=t.x*Math.cos(-yaw)-t.z*Math.sin(-yaw);
+const dz=t.x*Math.sin(-yaw)+t.z*Math.cos(-yaw);
+
+if(dz<=0) continue;
+
+const sx=canvas.width/2 + dx/dz*700;
+const sy=canvas.height/2;
+
+const r=t.size/dz*700;
+
+const dist=Math.hypot(sx-canvas.width/2,sy-canvas.height/2);
+
+if(dist<r){
+targets.splice(i,1);
+spawnTarget();
+score++;
+document.getElementById("score").textContent=score;
+break;
+}
+}
+});
+
+function draw(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+ctx.fillStyle="#6ec6ff";
+ctx.fillRect(0,0,canvas.width,canvas.height/2);
+
+ctx.fillStyle="#3f7d32";
+ctx.fillRect(0,canvas.height/2,canvas.width,canvas.height/2);
+
+for(const t of targets){
+
+const dx=t.x*Math.cos(-yaw)-t.z*Math.sin(-yaw);
+const dz=t.x*Math.sin(-yaw)+t.z*Math.cos(-yaw);
+
+if(dz<=1) continue;
+
+const sx=canvas.width/2 + dx/dz*700;
+const sy=canvas.height/2;
+
+const r=t.size/dz*700;
+
+ctx.beginPath();
+ctx.arc(sx,sy,r,0,Math.PI*2);
+ctx.fillStyle="red";
+ctx.fill();
+
+ctx.strokeStyle="black";
+ctx.stroke();
+}
+
+requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>
